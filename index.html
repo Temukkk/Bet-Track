@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Betting Tracker</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background-color: #f9f9f9;
+      color: #333;
+    }
+    h1 {
+      text-align: center;
+      color: #444;
+    }
+    form {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    form label {
+      flex: 1 1 calc(25% - 20px);
+      min-width: 150px;
+    }
+    form input, form select, form button {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    form button {
+      background-color: #4CAF50;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    form button:hover {
+      background-color: #45a049;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+    table, th, td {
+      border: 1px solid #ddd;
+    }
+    th, td {
+      padding: 10px;
+      text-align: left;
+    }
+    th {
+      background-color: #4CAF50;
+      color: white;
+    }
+    tfoot td {
+      font-weight: bold;
+      background-color: #f4f4f4;
+    }
+    .profit {
+      color: green;
+    }
+    .loss {
+      color: red;
+    }
+    .delete-btn {
+      background-color: #e74c3c;
+      color: white;
+      padding: 5px 10px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .delete-btn:hover {
+      background-color: #c0392b;
+    }
+  </style>
+</head>
+<body>
+  <h1>Betting Tracker</h1>
+
+  <!-- Input Form -->
+  <form id="betForm">
+    <label>
+      Date:
+      <input type="date" id="date" required>
+    </label>
+    <label>
+      Sport/League:
+      <input type="text" id="sport" required>
+    </label>
+    <label>
+      Stake:
+      <input type="number" id="stake" required>
+    </label>
+    <label>
+      Odds:
+      <input type="number" step="0.01" id="odds" required>
+    </label>
+    <label>
+      Result:
+      <select id="result">
+        <option value="WIN">WIN</option>
+        <option value="LOSS">LOSS</option>
+      </select>
+    </label>
+    <button type="submit">Add Bet</button>
+  </form>
+
+  <!-- Data Table -->
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Sport/League</th>
+        <th>Stake</th>
+        <th>Odds</th>
+        <th>Result</th>
+        <th>Net Profit</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody id="betTableBody">
+      <!-- Bets will be displayed here -->
+    </tbody>
+    <tfoot>
+      <tr>
+        <td colspan="2">Total:</td>
+        <td id="totalStake">0</td>
+        <td></td>
+        <td></td>
+        <td id="totalNetProfit" class="profit">0</td>
+        <td></td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <script>
+    let savedBets = JSON.parse(localStorage.getItem('bets')) || [];
+
+    // Initialize table with saved bets
+    function initializeTable() {
+      const tableBody = document.getElementById('betTableBody');
+      tableBody.innerHTML = ''; // Clear existing rows
+      savedBets.forEach((bet, index) => addBetRow(bet, index));
+      updateTotals();
+    }
+
+    // Add bet row to the table
+    function addBetRow(bet, index) {
+      const tableBody = document.getElementById('betTableBody');
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${bet.date}</td>
+        <td>${bet.sport}</td>
+        <td>${bet.stake.toFixed(2)}</td>
+        <td>${bet.odds.toFixed(2)}</td>
+        <td>${bet.result}</td>
+        <td class="${bet.netProfit >= 0 ? 'profit' : 'loss'}">${bet.netProfit.toFixed(2)}</td>
+        <td><button class="delete-btn" onclick="deleteBet(${index})">Delete</button></td>
+      `;
+      tableBody.appendChild(row);
+    }
+
+    // Update totals (stake, profit)
+    function updateTotals() {
+      const totalStake = savedBets.reduce((sum, bet) => sum + bet.stake, 0);
+      const totalProfit = savedBets.reduce((sum, bet) => sum + bet.netProfit, 0);
+
+      document.getElementById('totalStake').textContent = totalStake.toFixed(2);
+      document.getElementById('totalNetProfit').textContent = totalProfit.toFixed(2);
+      document.getElementById('totalNetProfit').className = totalProfit >= 0 ? 'profit' : 'loss';
+    }
+
+    // Delete bet by index
+    function deleteBet(index) {
+      savedBets.splice(index, 1);
+      localStorage.setItem('bets', JSON.stringify(savedBets));
+      initializeTable();
+    }
+
+    // Add bet
+    document.getElementById('betForm').addEventListener('submit', function (event) {
+      event.preventDefault();
+
+      const date = document.getElementById('date').value;
+      const sport = document.getElementById('sport').value;
+      const stake = parseFloat(document.getElementById('stake').value);
+      const odds = parseFloat(document.getElementById('odds').value);
+      const result = document.getElementById('result').value;
+
+      const netProfit = result === 'WIN' ? stake * odds - stake : -stake;
+
+      const bet = { date, sport, stake, odds, result, netProfit };
+      savedBets.push(bet);
+
+      localStorage.setItem('bets', JSON.stringify(savedBets));
+      initializeTable();
+
+      document.getElementById('betForm').reset();
+    });
+
+    // Initialize app
+    initializeTable();
+  </script>
+</body>
+</html>
